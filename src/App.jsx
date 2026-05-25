@@ -204,6 +204,7 @@ export default function DailyPaperDrop() {
   const [critique, setCritique] = useState("");
   const [copied, setCopied] = useState(false);
   const [showManage, setShowManage] = useState(false);
+  const [listTab, setListTab] = useState("deck"); // deck | read — the reading-list panel
   const [draft, setDraft] = useState({ id: "", title: "", authors: "", field: "", summary: "" });
   const [fetching, setFetching] = useState(false);
   const [fetchMsg, setFetchMsg] = useState("");
@@ -250,7 +251,8 @@ export default function DailyPaperDrop() {
   const remainingToday = Math.max(0, state.goal - doneToday);
   const lineup = ranked.slice(0, remainingToday); // still to read today
   const paper = lineup[0];
-  const upNext = lineup.slice(1);
+  const upNext = lineup.slice(1); // rest of today's goal, after the current paper
+  const laterQueue = ranked.slice(remainingToday); // queued beyond today's goal
 
   const TARGET = 300;
   const pct = Math.min(100, (seconds / TARGET) * 100);
@@ -485,67 +487,141 @@ export default function DailyPaperDrop() {
 
         {/* CARD MODE */}
         {mode === "card" && (
-          paper ? (
-            <div>
-              <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, letterSpacing: 2, color: PALETTE.inkSoft, marginBottom: 10 }}>
-                NEXT UP · {todayKey()}
-              </div>
-              <div style={{ background: PALETTE.card, border: `1px solid ${PALETTE.line}`, boxShadow: "6px 7px 0 rgba(28,26,23,0.07)" }} className="rounded-sm p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <span style={{ background: PALETTE.accentSoft, color: PALETTE.accent, fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: 1.5 }}
-                    className="inline-block px-2 py-1 rounded-sm uppercase">
-                    {paper.field}
-                  </span>
-                  <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: matched ? PALETTE.accent : PALETTE.inkSoft }}>
-                    {matched ? "★ matches your interests" : state.interests.length ? "queue order" : "next in queue"}
-                  </span>
+          <>
+            {paper ? (
+              <div>
+                <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, letterSpacing: 2, color: PALETTE.inkSoft, marginBottom: 10 }}>
+                  NEXT UP · {todayKey()}
                 </div>
-                <h2 style={{ fontFamily: "Fraunces, serif", fontWeight: 600, fontSize: 25, lineHeight: 1.18 }}>{paper.title}</h2>
-                <div style={{ color: PALETTE.inkSoft, fontSize: 14 }} className="mt-2">
-                  {paper.authors} · {paper.year} · arXiv:{paper.id}
-                </div>
-                <div style={{ borderTop: `1px dashed ${PALETTE.line}`, marginTop: 16, paddingTop: 14 }}>
-                  <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: 1.5, color: PALETTE.gold }} className="uppercase mb-1">
-                    Why it surfaced
+                <div style={{ background: PALETTE.card, border: `1px solid ${PALETTE.line}`, boxShadow: "6px 7px 0 rgba(28,26,23,0.07)" }} className="rounded-sm p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <span style={{ background: PALETTE.accentSoft, color: PALETTE.accent, fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: 1.5 }}
+                      className="inline-block px-2 py-1 rounded-sm uppercase">
+                      {paper.field}
+                    </span>
+                    <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: matched ? PALETTE.accent : PALETTE.inkSoft }}>
+                      {matched ? "★ matches your interests" : state.interests.length ? "queue order" : "next in queue"}
+                    </span>
                   </div>
-                  <p style={{ fontSize: 14.5, lineHeight: 1.5 }}>{paper.why}</p>
-                </div>
-              </div>
-
-              <button onClick={startReading}
-                style={{ background: PALETTE.accent, color: "#fff", fontFamily: "JetBrains Mono, monospace", letterSpacing: 1 }}
-                className="w-full mt-5 py-4 rounded-sm flex items-center justify-center gap-2 text-sm uppercase">
-                <Timer size={16} /> Start 5-minute read
-              </button>
-
-              {upNext.length > 0 && (
-                <div className="mt-5">
-                  <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: 1.5, color: PALETTE.inkSoft }} className="uppercase mb-2">
-                    also today
+                  <h2 style={{ fontFamily: "Fraunces, serif", fontWeight: 600, fontSize: 25, lineHeight: 1.18 }}>{paper.title}</h2>
+                  <div style={{ color: PALETTE.inkSoft, fontSize: 14 }} className="mt-2">
+                    {paper.authors} · {paper.year} · arXiv:{paper.id}
                   </div>
-                  {upNext.map((p) => (
-                    <div key={p.id} style={{ borderLeft: `2px solid ${PALETTE.line}`, paddingLeft: 10 }} className="mb-2">
-                      <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.2 }}>{p.title}</div>
-                      <div style={{ fontSize: 11.5, color: PALETTE.inkSoft, fontFamily: "JetBrains Mono, monospace" }}>{p.field}</div>
+                  <div style={{ borderTop: `1px dashed ${PALETTE.line}`, marginTop: 16, paddingTop: 14 }}>
+                    <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: 1.5, color: PALETTE.gold }} className="uppercase mb-1">
+                      Why it surfaced
                     </div>
-                  ))}
+                    <p style={{ fontSize: 14.5, lineHeight: 1.5 }}>{paper.why}</p>
+                  </div>
                 </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ background: PALETTE.card, border: `1px dashed ${PALETTE.line}` }} className="rounded-sm p-8 text-center">
-              {doneToday >= state.goal ? (
-                <p style={{ fontSize: 16 }}>You've hit today's {state.goal}. Come back tomorrow.</p>
-              ) : (
-                <>
-                  <p style={{ fontSize: 16 }}>Your queue is empty.</p>
-                  <button onClick={() => setShowManage(true)} style={{ color: PALETTE.accent, fontFamily: "JetBrains Mono, monospace", fontSize: 13 }} className="mt-2 underline">
-                    add some papers
-                  </button>
-                </>
-              )}
-            </div>
-          )
+
+                <button onClick={startReading}
+                  style={{ background: PALETTE.accent, color: "#fff", fontFamily: "JetBrains Mono, monospace", letterSpacing: 1 }}
+                  className="w-full mt-5 py-4 rounded-sm flex items-center justify-center gap-2 text-sm uppercase">
+                  <Timer size={16} /> Start 5-minute read
+                </button>
+              </div>
+            ) : (
+              <div style={{ background: PALETTE.card, border: `1px dashed ${PALETTE.line}` }} className="rounded-sm p-8 text-center">
+                {doneToday >= state.goal ? (
+                  <p style={{ fontSize: 16 }}>You've hit today's {state.goal}. Come back tomorrow.</p>
+                ) : (
+                  <>
+                    <p style={{ fontSize: 16 }}>Your queue is empty.</p>
+                    <button onClick={() => setShowManage(true)} style={{ color: PALETTE.accent, fontFamily: "JetBrains Mono, monospace", fontSize: 13 }} className="mt-2 underline">
+                      add some papers
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* READING LIST — what's coming up + what you've finished */}
+            {(unread.length > 0 || state.log.length > 0) && (
+              <div className="mt-6">
+                <div className="flex gap-2 mb-3">
+                  {[
+                    { key: "deck", label: `on deck · ${upNext.length + laterQueue.length}` },
+                    { key: "read", label: `read · ${state.log.length}` },
+                  ].map((t) => {
+                    const on = listTab === t.key;
+                    return (
+                      <button key={t.key} onClick={() => setListTab(t.key)}
+                        style={{
+                          fontFamily: "JetBrains Mono, monospace", fontSize: 11, letterSpacing: 0.5,
+                          background: on ? PALETTE.ink : "transparent",
+                          color: on ? PALETTE.paper : PALETTE.inkSoft,
+                          border: `1px solid ${on ? PALETTE.ink : PALETTE.line}`,
+                        }}
+                        className="px-3 py-1.5 rounded-sm uppercase">
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {listTab === "deck" ? (
+                  upNext.length + laterQueue.length === 0 ? (
+                    <p style={{ fontSize: 13.5, color: PALETTE.inkSoft, fontFamily: "JetBrains Mono, monospace" }}>
+                      Nothing else on deck. Add papers from “manage queue.”
+                    </p>
+                  ) : (
+                    <>
+                      {upNext.length > 0 && (
+                        <>
+                          <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: 1.5, color: PALETTE.gold }} className="uppercase mb-2">
+                            still today
+                          </div>
+                          {upNext.map((p) => (
+                            <div key={p.id} style={{ borderLeft: `2px solid ${PALETTE.accent}`, paddingLeft: 10 }} className="mb-2.5">
+                              <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.2 }}>
+                                {p.title}{state.interests.includes(p.field) ? " ★" : ""}
+                              </div>
+                              <div style={{ fontSize: 11.5, color: PALETTE.inkSoft, fontFamily: "JetBrains Mono, monospace" }}>{p.field}</div>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                      {laterQueue.length > 0 && (
+                        <>
+                          <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: 1.5, color: PALETTE.inkSoft }} className="uppercase mb-2 mt-3">
+                            coming up
+                          </div>
+                          {laterQueue.slice(0, 12).map((p) => (
+                            <div key={p.id} style={{ borderLeft: `2px solid ${PALETTE.line}`, paddingLeft: 10 }} className="mb-2.5">
+                              <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.2 }}>
+                                {p.title}{state.interests.includes(p.field) ? " ★" : ""}
+                              </div>
+                              <div style={{ fontSize: 11.5, color: PALETTE.inkSoft, fontFamily: "JetBrains Mono, monospace" }}>{p.field}</div>
+                            </div>
+                          ))}
+                          {laterQueue.length > 12 && (
+                            <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: PALETTE.inkSoft }} className="mt-1">
+                              +{laterQueue.length - 12} more in queue
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </>
+                  )
+                ) : state.log.length === 0 ? (
+                  <p style={{ fontSize: 13.5, color: PALETTE.inkSoft, fontFamily: "JetBrains Mono, monospace" }}>
+                    Nothing read yet. Your finished papers and takeaways land here.
+                  </p>
+                ) : (
+                  state.log.map((e, i) => (
+                    <div key={i} style={{ borderLeft: `2px solid ${PALETTE.accentSoft}`, paddingLeft: 12 }} className="mb-2.5">
+                      <div style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.2 }}>{e.title}</div>
+                      {e.takeaway && (
+                        <div style={{ fontSize: 13, color: PALETTE.inkSoft, lineHeight: 1.35 }} className="mt-0.5">{e.takeaway}</div>
+                      )}
+                      <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: PALETTE.line }}>{e.date}</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </>
         )}
 
         {/* READING MODE */}

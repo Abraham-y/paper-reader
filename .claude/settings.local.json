@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm -v)",
+      "Bash(gh --version)",
+      "Bash(git --version)",
+      "Bash(curl -sI \"https://export.arxiv.org/api/query?id_list=1807.03748\")"
+    ]
+  }
+}

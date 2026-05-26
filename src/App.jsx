@@ -208,6 +208,7 @@ export default function DailyPaperDrop() {
   const [copied, setCopied] = useState(false);
   const [showManage, setShowManage] = useState(false);
   const [listTab, setListTab] = useState("deck"); // deck | read — the reading-list panel
+  const [selectedId, setSelectedId] = useState(null); // a hand-picked paper, overrides the suggestion
   const [draft, setDraft] = useState({ id: "", title: "", authors: "", field: "", summary: "" });
   const [fetching, setFetching] = useState(false);
   const [fetchMsg, setFetchMsg] = useState("");
@@ -252,10 +253,14 @@ export default function DailyPaperDrop() {
 
   const doneToday = state.todayDate === todayKey() ? state.todayCount : 0;
   const remainingToday = Math.max(0, state.goal - doneToday);
-  const lineup = ranked.slice(0, remainingToday); // still to read today
-  const paper = lineup[0];
-  const upNext = lineup.slice(1); // rest of today's goal, after the current paper
-  const laterQueue = ranked.slice(remainingToday); // queued beyond today's goal
+  const lineup = ranked.slice(0, remainingToday); // today's auto-suggested goal
+  // You can hand-pick any unread paper; otherwise the top of the queue is used.
+  const selected = selectedId ? unread.find((p) => p.id === selectedId) : null;
+  const paper = selected || lineup[0];
+  const isManualPick = Boolean(selected);
+  // The lists below show the rest of the queue, never the paper that's already active.
+  const upNext = lineup.filter((p) => paper && p.id !== paper.id); // rest of today
+  const laterQueue = ranked.slice(remainingToday).filter((p) => paper && p.id !== paper.id);
 
   const TARGET = 300;
   const pct = Math.min(100, (seconds / TARGET) * 100);
@@ -263,6 +268,13 @@ export default function DailyPaperDrop() {
 
   // ---- actions ----
   const startReading = () => { setSeconds(0); setMode("reading"); };
+
+  // Hand-pick a paper to read; jump back up so the card shows it.
+  const pick = (id) => {
+    setSelectedId(id);
+    setListTab("deck");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const logIt = () => {
     if (!takeaway.trim() || !paper) return;
@@ -285,7 +297,7 @@ export default function DailyPaperDrop() {
       log: [{ date: today, title: paper.title, takeaway: takeaway.trim(), critique: critique.trim() }, ...state.log].slice(0, 50),
     };
     persist(next);
-    setTakeaway(""); setCritique(""); setSeconds(0);
+    setTakeaway(""); setCritique(""); setSeconds(0); setSelectedId(null);
     setMode(newCount >= state.goal ? "done" : "card");
   };
 
@@ -524,8 +536,17 @@ export default function DailyPaperDrop() {
           <>
             {paper ? (
               <div>
-                <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, letterSpacing: 2, color: PALETTE.inkSoft, marginBottom: 10 }}>
-                  NEXT UP · {todayKey()}
+                <div className="flex items-center justify-between mb-2.5">
+                  <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, letterSpacing: 2, color: PALETTE.inkSoft }}>
+                    {isManualPick ? "YOUR PICK" : "NEXT UP"} · {todayKey()}
+                  </span>
+                  {isManualPick && (
+                    <button onClick={() => setSelectedId(null)}
+                      style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, color: PALETTE.inkSoft, border: `1px solid ${PALETTE.line}` }}
+                      className="px-2 py-1 rounded-sm flex items-center gap-1">
+                      <RotateCcw size={10} /> use suggested
+                    </button>
+                  )}
                 </div>
                 <div style={{ background: PALETTE.card, border: `1px solid ${PALETTE.line}`, boxShadow: "6px 7px 0 rgba(28,26,23,0.07)" }} className="rounded-sm p-6">
                   <div className="flex items-center justify-between mb-3">
@@ -612,12 +633,15 @@ export default function DailyPaperDrop() {
                             still today
                           </div>
                           {upNext.map((p) => (
-                            <div key={p.id} style={{ borderLeft: `2px solid ${PALETTE.accent}`, paddingLeft: 10 }} className="mb-2.5">
+                            <button key={p.id} onClick={() => pick(p.id)}
+                              style={{ borderLeft: `2px solid ${PALETTE.accent}`, paddingLeft: 10, width: "100%", textAlign: "left" }} className="mb-2.5 block">
                               <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.2 }}>
                                 {p.title}{state.interests.includes(p.field) ? " ★" : ""}
                               </div>
-                              <div style={{ fontSize: 11.5, color: PALETTE.inkSoft, fontFamily: "JetBrains Mono, monospace" }}>{p.field}</div>
-                            </div>
+                              <div style={{ fontSize: 11.5, color: PALETTE.inkSoft, fontFamily: "JetBrains Mono, monospace" }}>
+                                {p.field} · tap to read
+                              </div>
+                            </button>
                           ))}
                         </>
                       )}
@@ -627,12 +651,15 @@ export default function DailyPaperDrop() {
                             coming up
                           </div>
                           {laterQueue.slice(0, 12).map((p) => (
-                            <div key={p.id} style={{ borderLeft: `2px solid ${PALETTE.line}`, paddingLeft: 10 }} className="mb-2.5">
+                            <button key={p.id} onClick={() => pick(p.id)}
+                              style={{ borderLeft: `2px solid ${PALETTE.line}`, paddingLeft: 10, width: "100%", textAlign: "left" }} className="mb-2.5 block">
                               <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.2 }}>
                                 {p.title}{state.interests.includes(p.field) ? " ★" : ""}
                               </div>
-                              <div style={{ fontSize: 11.5, color: PALETTE.inkSoft, fontFamily: "JetBrains Mono, monospace" }}>{p.field}</div>
-                            </div>
+                              <div style={{ fontSize: 11.5, color: PALETTE.inkSoft, fontFamily: "JetBrains Mono, monospace" }}>
+                                {p.field} · tap to read
+                              </div>
+                            </button>
                           ))}
                           {laterQueue.length > 12 && (
                             <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: PALETTE.inkSoft }} className="mt-1">

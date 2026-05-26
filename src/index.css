@@ -15,3 +15,74 @@ body {
     env(safe-area-inset-bottom) env(safe-area-inset-left);
   -webkit-font-smoothing: antialiased;
 }
+
+/* ---- Reflowed paper reader (injected arXiv HTML) ---- */
+.paper-html {
+  line-height: 1.7;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.paper-html p {
+  margin: 0.7em 0;
+}
+.paper-html img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem auto;
+}
+.paper-html figure {
+  margin: 1.4rem 0;
+}
+.paper-html figcaption,
+.paper-html .ltx_caption {
+  font-size: 0.82em;
+  color: #5a544b;
+  line-height: 1.4;
+  margin-top: 0.4rem;
+}
+/* Tables can be wide — let them scroll horizontally instead of breaking layout. */
+.paper-html table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.85em;
+  margin: 1rem 0;
+}
+.paper-html td,
+.paper-html th {
+  border: 1px solid #d8d2c4;
+  padding: 4px 8px;
+  text-align: left;
+}
+.paper-html h3,
+.paper-html h4 {
+  font-family: Fraunces, serif;
+  font-weight: 600;
+  font-size: 1.12em;
+  line-height: 1.25;
+  margin: 1.3em 0 0.3em;
+}
+.paper-html a {
+  color: #c1432a;
+  text-decoration: none;
+}
+.paper-html math {
+  font-size: 1.02em;
+}
+/* Display equations should scroll, not overflow the screen. */
+.paper-html math[display="block"],
+.paper-html .ltx_equation,
+.paper-html .ltx_eqn_table {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.paper-html ul,
+.paper-html ol {
+  padding-left: 1.3em;
+  margin: 0.6em 0;
+}
+.paper-html li {
+  margin: 0.3em 0;
+}

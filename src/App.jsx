@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Flame, Timer, ArrowUpRight, Check, Copy, RotateCcw, BookOpen, Plus, Settings2, Sparkles, ListChecks, Loader2 } from "lucide-react";
+import { Flame, Timer, ArrowUpRight, Check, Copy, RotateCcw, BookOpen, Plus, Settings2, Sparkles, ListChecks, Loader2, BookText } from "lucide-react";
+import Reader from "./Reader.jsx";
+import { loadAI, saveAI } from "./lib/ai.js";
 
 /*
   DAILY PAPER DROP
@@ -198,7 +200,8 @@ async function fetchArxiv(rawId) {
 export default function DailyPaperDrop() {
   const [loaded, setLoaded] = useState(false);
   const [state, setState] = useState(FRESH);
-  const [mode, setMode] = useState("card"); // card | reading | done
+  const [mode, setMode] = useState("card"); // card | reading | fulltext | done
+  const [aiCfg, setAiCfg] = useState(loadAI());
   const [seconds, setSeconds] = useState(0);
   const [takeaway, setTakeaway] = useState("");
   const [critique, setCritique] = useState("");
@@ -292,6 +295,12 @@ export default function DailyPaperDrop() {
   };
 
   const setGoal = (g) => persist({ ...state, goal: Math.max(1, Math.min(10, g)) });
+
+  const updateAI = (patch) => {
+    const next = { ...aiCfg, ...patch };
+    setAiCfg(next);
+    saveAI(next);
+  };
 
   // Pull title/authors/abstract/year from arXiv and prefill the draft.
   const lookupArxiv = async () => {
@@ -479,10 +488,35 @@ export default function DailyPaperDrop() {
               </p>
             </div>
 
+            {/* AI summaries */}
+            <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: 1.5, color: PALETTE.gold }} className="uppercase mb-2 mt-5 flex items-center gap-1">
+              <Sparkles size={11} /> AI section digests (OpenRouter)
+            </div>
+            <div className="flex flex-col gap-2">
+              <input type="password" value={aiCfg.apiKey} onChange={(e) => updateAI({ apiKey: e.target.value })} placeholder="OpenRouter API key (sk-or-…)"
+                style={inputStyle} className="rounded-sm px-2.5 py-2 outline-none" autoComplete="off" />
+              <input value={aiCfg.model} onChange={(e) => updateAI({ model: e.target.value })} placeholder="model"
+                style={inputStyle} className="rounded-sm px-2.5 py-2 outline-none" />
+              <p style={{ fontSize: 11.5, color: PALETTE.inkSoft, fontFamily: "JetBrains Mono, monospace", lineHeight: 1.45 }}>
+                {aiCfg.apiKey ? "✓ digests on — stored only in this browser." : "Get a key at openrouter.ai/keys. Stored only in this browser; calls go straight to OpenRouter."}
+              </p>
+            </div>
+
             <div style={{ borderTop: `1px solid ${PALETTE.line}`, marginTop: 14, paddingTop: 10, fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: PALETTE.inkSoft }} className="flex items-center gap-1">
               <ListChecks size={12} /> {unread.length} unread in queue · {allPapers.length} total
             </div>
           </div>
+        )}
+
+        {/* FULL-TEXT READER MODE */}
+        {mode === "fulltext" && paper && (
+          <Reader
+            paper={paper}
+            palette={PALETTE}
+            aiCfg={aiCfg}
+            onExit={() => setMode("card")}
+            onLog={() => setMode("reading")}
+          />
         )}
 
         {/* CARD MODE */}
@@ -519,6 +553,11 @@ export default function DailyPaperDrop() {
                   style={{ background: PALETTE.accent, color: "#fff", fontFamily: "JetBrains Mono, monospace", letterSpacing: 1 }}
                   className="w-full mt-5 py-4 rounded-sm flex items-center justify-center gap-2 text-sm uppercase">
                   <Timer size={16} /> Start 5-minute read
+                </button>
+                <button onClick={() => setMode("fulltext")}
+                  style={{ border: `1px solid ${PALETTE.ink}`, color: PALETTE.ink, fontFamily: "JetBrains Mono, monospace", letterSpacing: 1 }}
+                  className="w-full mt-2.5 py-3 rounded-sm flex items-center justify-center gap-2 text-xs uppercase">
+                  <BookText size={15} /> Read full text
                 </button>
               </div>
             ) : (
